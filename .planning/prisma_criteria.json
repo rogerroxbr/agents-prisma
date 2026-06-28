@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "description": "User-configurable PRISMA criteria for systematic review pipeline",
+  "criteria": {
+    "population_keywords": [],
+    "intervention_keywords": [],
+    "comparison_keywords": [],
+    "outcome_keywords": []
+  },
+  "settings": {
+    "batch_size": 50,
+    "min_abstract_length": 100,
+    "max_abstract_length": 5000,
+    "confidence_threshold": 0.7
+  }
+}
