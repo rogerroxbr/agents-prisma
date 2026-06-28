@@ -230,4 +230,5 @@ config/                     â³ Pendente
 ---
 
 *Documento gerado via `/gsd:new-project` com skill `gsd-new-project`*  
-*Atualizado automaticamente: 28/06/2026 14:45 UTC*
+*Documento gerado via /gsd:new-project com skill gsd-new-project*
+*Atualizado automaticamente: 28/06/2026 17:55 UTC (Phase 1.1 setup complete)*
