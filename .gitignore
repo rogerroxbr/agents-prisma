@@ -1,0 +1,100 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+._idea
+
+# Coverage reports
+.htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Migrations
+migrations/
+.env
+.env.local
+.env.*.local
+.flaskenv
+.vite
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Docker
+docker-compose.override.yml
+*.log
+
+# Prisma
+src/db/*.db
+*.sqlite3
+
+# NotebookLM (if used)
+_notebooklm_temp/
+
+# GSD Planning
+.planning/*
+! .planning/config.json
+! .planning/prisma_criteria.json
+venv/
+.env
+.env.local
+.pytest_cache/
+.coverage
+htmlcov/
+*.pyc
+__pycache__/

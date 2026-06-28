@@ -1,0 +1,35 @@
+[project]
+name = "agents-prisma"
+version = "0.1.0"
+description = "Multi-agent system for PRISMA systematic review pipeline using CrewAI"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Roger Rox", email = "rogerroxbr@gmail.com"},
+]
+dependencies = [
+    "crewai>=0.7.0",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
+    "pytest>=8.0",
+    "pytest-mock>=3.14",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest-mock>=3.14",
+    "black>=24.0",
+    "ruff>=0.6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

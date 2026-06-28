@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "project_name": "Agents-Prisma",
+  "methodology": "PRISMA 2020",
+  "stages": {
+    "identification": {
+      "databases": ["PubMed/Medline", "Scopus", "Web of Science", "Google Scholar"],
+      "date_range_start": null,
+      "date_range_end": null,
+      "search_strategy": []
+    },
+    "screening": {
+      "inclusion_criteria": [],
+      "exclusion_criteria": []
+    },
+    "eligibility": {
+      "language_restrictions": ["English", "Portuguese"],
+      "study_designs_allowed": ["RCT", "Cohort", "Case-Control"]
+    },
+    "synthesis": {
+      "output_formats": ["Markdown", "Obsidian-compatible", "JSON"]
+    }
+  },
+  "custom_fields": {}
+}
