@@ -1,16 +1,25 @@
 {
-  "version": "1.0",
-  "description": "User-configurable PRISMA criteria for systematic review pipeline",
-  "criteria": {
-    "population_keywords": [],
-    "intervention_keywords": [],
-    "comparison_keywords": [],
-    "outcome_keywords": []
+  "version": "1.0.0",
+  "project_name": "Agents-Prisma",
+  "methodology": "PRISMA 2020",
+  "stages": {
+    "identification": {
+      "databases": ["PubMed/Medline", "Scopus", "Web of Science", "Google Scholar"],
+      "date_range_start": null,
+      "date_range_end": null,
+      "search_strategy": []
+    },
+    "screening": {
+      "inclusion_criteria": [],
+      "exclusion_criteria": []
+    },
+    "eligibility": {
+      "language_restrictions": ["English", "Portuguese"],
+      "study_designs_allowed": ["RCT", "Cohort", "Case-Control"]
+    },
+    "synthesis": {
+      "output_formats": ["Markdown", "Obsidian-compatible", "JSON"]
+    }
   },
-  "settings": {
-    "batch_size": 50,
-    "min_abstract_length": 100,
-    "max_abstract_length": 5000,
-    "confidence_threshold": 0.7
-  }
+  "custom_fields": {}
 }

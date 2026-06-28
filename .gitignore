@@ -90,3 +90,11 @@ _notebooklm_temp/
 .planning/*
 ! .planning/config.json
 ! .planning/prisma_criteria.json
+venv/
+.env
+.env.local
+.pytest_cache/
+.coverage
+htmlcov/
+*.pyc
+__pycache__/
