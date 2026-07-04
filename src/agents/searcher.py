@@ -1,4 +1,4 @@
-"""Searcher Agent - PubMed API integration."""
+"""Searcher Agent - Multi-source API integration."""
 from typing import Optional, List, Dict, Any
 import logging
 
@@ -6,38 +6,34 @@ from src.tools.pubmed_tool import PubMedTool
 
 
 class SearcherAgent:
-    """Search agent for identifying articles via PubMed API."""
+    """Multi-agent search for identifying articles via scientific APIs."""
 
     def __init__(self):
         self.logger = logging.getLogger(f"agents.searcher.{id(self)}")
-        self.tool = PubMedTool()
+        self.pubmed_tool = PubMedTool()
 
     def search_articles(
         self, query: str, date_range: tuple[str, str] | None = None, max_results: int = 100
     ) -> List[Dict[str, Any]]:
-        """Searches PubMed for articles matching the query.
+        """Searches multiple databases for articles matching the query.
 
         Args:
             query: Search term (e.g., "diabetes AND insulin").
             date_range: Optional tuple of (YYYY-MM-DD, YYYY-MM-DD).
-            max_results: Maximum number of results to return.
+            max_results: Maximum number of results to return per source.
 
         Returns:
-            List of article metadata dicts with doi, pmid, title, authors, abstract.
+            List of article metadata dicts with doi, title, authors, abstract.
         """
-        self.logger.info(f"Searching PubMed for query: {query!r}")
+        self.logger.info(f"Searching databases for query: {query!r}")
 
-        # Build date filter if provided
-        params = {}
-        if date_range is not None and len(date_range) >= 2:
-            params["date"] = f"{date_range[0]} TO {date_range[1]}"
+        # Search PubMed (primary source)
+        pubmed_results = self.pubmed_tool.search(query, date_range or ("", ""), max_results)
 
-        results = self.tool.search(query, tuple(date_range or ("", "")), max_results)
-
-        for r in results:
+        for r in pubmed_results:
             self.logger.info(f"Found article: PMID={r.get('pmid')}, DOI={r.get('doi')}")
-        
-        return results
+
+        return pubmed_results
 
 
 __all__ = ["SearcherAgent"]
