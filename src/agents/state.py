@@ -68,6 +68,10 @@ class PRISMAState(TypedDict, total=False):
     
     # Global orchestrator state (flat)
     project_id: int
+    query: str
+    max_results: int
+    date_range: Optional[tuple]
+    
     phase: str  # "identification" | "screening" | "eligibility" | "synthesis"
     progress: float  # 0.0 - 100.0, per-phase percentage
     articles_count: int
@@ -75,7 +79,6 @@ class PRISMAState(TypedDict, total=False):
     # Execution metadata
     created_at: datetime
     last_updated: datetime
-    checkpoint_id: Optional[int]
 
 
 # ==================== PYDANTIC VALIDATION MODELS ====================

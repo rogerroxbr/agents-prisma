@@ -9,12 +9,13 @@ authors = [
     {name = "Roger Rox", email = "rogerroxbr@gmail.com"},
 ]
 dependencies = [
-    "crewai>=0.7.0",
-    "crewai-tools>=0.10.0",
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
     "pytest>=8.0",
     "pytest-mock>=3.14",
+    "langchain-core>=0.1",
+    "langgraph>=0.0.30",
+    "langgraph-checkpoint-postgres>=2.0.0",
 ]
 
 [project.optional-dependencies]
