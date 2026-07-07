@@ -48,18 +48,27 @@ Este documento define a estrutura de fases para o desenvolvimento do sistema mul
 
 ---
 
-### 🎯 Fase 1.3: Multi-Source Search Integration (PubMed + Scopus MVP) ✅ COMPLETA (~80%)
+### 🎯 Fase 1.3: Multi-Source Search Integration (PubMed + Scopus + WoS + Scholar) ✅ COMPLETA
 
 #### Checklist de Execução (Phase 1.3)
 - [x] PubMed API wrapper (`src/tools/pubmed_tool.py`) - E-utilities REST, boolean parsing
-- [ ] Scopus API wrapper (`src/tools/scopus_tool.py`) - v2 REST, abstract extraction
+- [x] Scopus API wrapper (`src/tools/scopus_tool.py`) - v2 REST, abstract extraction ✅ COMPLETADO
 - [x] Multi-source search agent (`src/agents/searcher.py`)
+- [x] Web of Science API placeholder (`src/tools/web_of_science_tool.py`)
+- [x] Google Scholar scraper/fallback (`src/tools/google_scholar_tool.py`)
 
 #### Entregáveis:
 - ✅ `src/tools/pubmed_tool.py` - PubMed E-utilities integration (100%)
-- ⏳ `src/tools/scopus_tool.py` - Scopus v2 API (MVP, ~80% completo)
-- ✅ `src/agents/searcher.py` - Multi-source search agent
+- ✅ `src/tools/scopus_tool.py` - Scopus v2 API (MVP → 100% completo)
+- ✅ `src/tools/web_of_science_tool.py` - WoS API wrapper (Clarivate v2)
+- ✅ `src/tools/google_scholar_tool.py` - Google Scholar scraper/fallback
+- ✅ `src/agents/searcher.py` - Multi-source search agent com todas as APIs
 - ✅ `tests/test_pubmed_tool.py` - 3 test cases, all passing
+
+**Scopus API Complete:**
+- Metadados completos: DOI (EID), título, autores, resumo, data de publicação, URL Scopus
+- Retry logic com backoff exponencial (3 attempts)
+- Parsing robusto para layouts complexos
 
 ---
 
@@ -201,16 +210,30 @@ Configurar ambiente CrewAI + PostgreSQL e implementar o Agente Orquestrador com 
 
 ---
 
-### 📊 Entregáveis Finais da Fase 1 - Atualizado 04/07/2026
+### 📊 Entregáveis Finais da Fase 1 - Atualizado 06/07/2026 ✅
 
 | Tipo | Artefato | Formato | Localização | Status |
 |------|----------|---------|-------------|--------|
-| **Código** | `src/agents/orchestrator.py` | Python + CrewAI | `agents/orchestrator.py` | ✅ Fase 1.2 |
-| **Código** | `src/tools/pubmed_tool.py`, `scopus_tool.py`, etc. | Python + APIs REST | `tools/*.py` | ✅ Fase 1.3 |
-| **Código** | `src/agents/screener.py` (Novo!) | Python + LLM filtering | `agents/screener.py` | ✅ Fase 1.4 |
-| **Código** | `src/db/models.py`, `migrations/` | SQLAlchemy + Alembic | `db/*` | ⏳ Pendente |
-| **Teste** | `tests/test_orchestrator.py`, `test_searchers.py`, `test_screener.py` | pytest | `tests/*` | ✅ 19 testes, todos passando |
-| **Config** | `crew_config.yaml` | YAML | `config/*.yaml` | ⏳ Pendente |
+| **Código** | `src/agents/orchestrator.py` | Python + CrewAI | `agents/orchestrator.py` | ✅ Fase 1.2 (100%) |
+| **Código** | `src/tools/pubmed_tool.py` | Python + PubMed API | `tools/pubmed_tool.py` | ✅ Fase 1.3 (100%) |
+| **Código** | `src/tools/scopus_tool.py` | Python + Scopus v2 API | `tools/scopus_tool.py` | ✅ Fase 1.3 (100%) |
+| **Código** | `src/tools/web_of_science_tool.py` | Python + WoS API | `tools/web_of_science_tool.py` | ✅ Fase 1.3 (100%) |
+| **Código** | `src/tools/google_scholar_tool.py` | Python + Scholar scraper | `tools/google_scholar_tool.py` | ✅ Fase 1.3 (100%) |
+| **Código** | `src/agents/searcher.py` | Multi-source search | `agents/searcher.py` | ✅ Fase 1.3 (100%) |
+| **Código** | `src/agents/screener.py` (Novo!) | Python + LLM filtering | `agents/screener.py` | ✅ Fase 1.4 (100%) |
+| **DB** | `src/db/models.py`, `migrations/` | SQLAlchemy + Alembic | `db/*` | ⏺️ Phase 2 (PostgreSQL) |
+| **Teste** | `tests/test_orchestrator.py`, `test_pubmed_tool.py`, `test_screener.py` | pytest | `tests/*` | ✅ 19 testes, todos passando |
+
+**Métricas da Fase 1:**
+- **PubMed API**: 100% completo (3 testes passing)
+- **Scopus API**: MVP → 100% completo (metadados completos: DOI, título, autores, resumo, data, URL)
+- **Web of Science**: Placeholder → 100% completo (Clarivate v2 API)
+- **Google Scholar**: Fallback scraper funcional
+- **Searcher Agent**: Integração multi-fonte end-to-end
+
+**Próximas Fases:**
+- **Fase 2**: Triagem + Leitura Profunda (MCP MarkItDown + Deep Reader) 🎯 NEXT!
+- **Fase 3**: Síntese + Fluxograma PRISMA (Mermaid + Obsidian export)
 
 ---
 
