@@ -19,7 +19,7 @@ def read_node(state: PRISMAState) -> PRISMAState:
         return {"phase": "synthesize"}
         
     # Get all included articles
-    included_ids = [aid for aid, decision in screen_state.decisions.items() if decision == "include"]
+    included_ids = [aid for aid, decision_dict in screen_state.decisions.items() if decision_dict.get("decision") == "include"]
     
     if not included_ids:
         print("[READ_NODE] No articles were included for reading")

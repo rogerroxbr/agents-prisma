@@ -26,7 +26,7 @@ class ScreeningState(BaseModel):
     
     batches_processed: int = 0
     articles_reviewed: List[int] = Field(default_factory=list)
-    decisions: Dict[int, str] = Field(default_factory=dict)  # {article_id: "include/exclude"}
+    decisions: Dict[int, Any] = Field(default_factory=dict)  # {article_id: {"decision": "include", "reason": "...", "pico": {...}}}
     
     # Interactive CLI state
     current_batch_size: int = 50

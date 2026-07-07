@@ -1,47 +1,44 @@
 """Integration test for the full PRISMA LangGraph pipeline."""
 import pytest
-from unittest.mock import patch, MagicMock
-
 from src.agents.orchestrator_langgraph import MainStateGraph
 
 @pytest.fixture
-def mock_apis():
+def mock_apis(mocker):
     """Mock external APIs to prevent network calls during integration tests."""
+    mock_pubmed = mocker.patch('src.tools.pubmed_tool.PubMedTool.search')
+    mock_scopus = mocker.patch('src.tools.scopus_tool.ScopusTool.search')
+    mock_screener = mocker.patch('src.agents.screener.ScreeningAgent.screen_batch')
     
-    with patch('src.tools.pubmed_tool.PubMedTool.search') as mock_pubmed, \
-         patch('src.tools.scopus_tool.ScopusTool.search') as mock_scopus, \
-         patch('src.agents.screener.ScreeningAgent.screen_batch') as mock_screener:
+    # Mock PubMed returns 1 article
+    mock_pubmed.return_value = [{
+        "title": "PubMed Diabetes Study",
+        "doi": "10.1111/pubmed1",
+        "pmid": "111",
+        "authors": ["Smith J"],
+        "abstract": "A study on diabetes."
+    }]
+    
+    # Mock Scopus returns 1 article
+    mock_scopus.return_value = [{
+        "title": "Scopus Diabetes Study",
+        "doi": "10.2222/scopus1",
+        "authors": ["Doe J"],
+        "abstract": "Another study on diabetes."
+    }]
+    
+    # Mock Screener decision (include PubMed, exclude Scopus)
+    def mock_screen_logic(batch, *args, **kwargs):
+        results = []
+        for item in batch:
+            if item.get("doi") == "10.1111/pubmed1":
+                results.append({"article": item, "decision": "include"})
+            else:
+                results.append({"article": item, "decision": "exclude"})
+        return results
         
-        # Mock PubMed returns 1 article
-        mock_pubmed.return_value = [{
-            "title": "PubMed Diabetes Study",
-            "doi": "10.1111/pubmed1",
-            "pmid": "111",
-            "authors": ["Smith J"],
-            "abstract": "A study on diabetes."
-        }]
-        
-        # Mock Scopus returns 1 article
-        mock_scopus.return_value = [{
-            "title": "Scopus Diabetes Study",
-            "doi": "10.2222/scopus1",
-            "authors": ["Doe J"],
-            "abstract": "Another study on diabetes."
-        }]
-        
-        # Mock Screener decision (include PubMed, exclude Scopus)
-        def mock_screen_logic(batch, *args, **kwargs):
-            results = []
-            for item in batch:
-                if item.get("doi") == "10.1111/pubmed1":
-                    results.append({"article": item, "decision": "include"})
-                else:
-                    results.append({"article": item, "decision": "exclude"})
-            return results
-            
-        mock_screener.side_effect = mock_screen_logic
-        
-        yield (mock_pubmed, mock_scopus, mock_screener)
+    mock_screener.side_effect = mock_screen_logic
+    
+    return (mock_pubmed, mock_scopus, mock_screener)
 
 
 def test_full_pipeline_execution(mock_apis):
@@ -72,8 +69,9 @@ def test_full_pipeline_execution(mock_apis):
     # 2 articles reviewed
     assert len(screen.articles_reviewed) == 2
     # 1 included, 1 excluded
-    assert list(screen.decisions.values()).count("include") == 1
-    assert list(screen.decisions.values()).count("exclude") == 1
+    decisions_list = [d.get("decision") if isinstance(d, dict) else d for d in screen.decisions.values()]
+    assert decisions_list.count("include") == 1
+    assert decisions_list.count("exclude") == 1
     
     # Assertions on Eligibility Phase (Read)
     assert "eligibility" in final_state

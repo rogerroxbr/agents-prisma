@@ -44,7 +44,12 @@ def screen_node(state: PRISMAState) -> PRISMAState:
         # We use index or DOI as ID. Let's use index for simplicity in this MVP
         article = r.get("article", {})
         article_id = hash(article.get("doi") or article.get("title") or str(i))
-        decisions[article_id] = r.get("decision")
+        decisions[article_id] = {
+            "decision": r.get("decision"),
+            "reason": r.get("reason"),
+            "score": r.get("score"),
+            "pico_extracted": r.get("pico_extracted")
+        }
         if article_id not in screen_state.articles_reviewed:
             screen_state.articles_reviewed.append(article_id)
             
