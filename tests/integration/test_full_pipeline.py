@@ -10,6 +10,7 @@ def mock_apis(mocker):
     mock_screener = mocker.patch('src.agents.screener.ScreeningAgent.screen_batch')
     mock_md_tool = mocker.patch('src.agents.nodes.read_node.MarkItDownTool')
     mock_reader = mocker.patch('src.agents.nodes.read_node.DeepReaderAgent')
+    mock_synthesizer = mocker.patch('src.agents.nodes.synthesize_node.SynthesizerAgent')
     
     # Mock PubMed returns 1 article
     mock_pubmed.return_value = [{
@@ -58,7 +59,17 @@ def mock_apis(mocker):
     }
     mock_reader.return_value = mock_reader_instance
     
-    return (mock_pubmed, mock_scopus, mock_screener, mock_md_tool, mock_reader)
+    # Mock SynthesizerAgent
+    mock_synth_instance = mocker.MagicMock()
+    from src.agents.synthesizer import SynthesisResult, ThemeGroup
+    mock_synth_instance.synthesize.return_value = SynthesisResult(
+        themes=[ThemeGroup(theme_name="Mock Theme", description="Mock Desc", article_ids=["10.1111/pubmed1"])],
+        overall_summary="Mock Summary"
+    )
+    mock_synth_instance.generate_markdown_report.return_value = "Mock Report Content"
+    mock_synthesizer.return_value = mock_synth_instance
+    
+    return (mock_pubmed, mock_scopus, mock_screener, mock_md_tool, mock_reader, mock_synthesizer)
 
 
 def test_full_pipeline_execution(mock_apis):
