@@ -10,6 +10,7 @@ authors = [
 ]
 dependencies = [
     "crewai>=0.7.0",
+    "crewai-tools>=0.10.0",
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
     "pytest>=8.0",
@@ -33,3 +34,8 @@ packages = ["src"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
+
+[project.scripts]
+prisma-run = "src.agents.main:main"
+prisma-searcher = "src.agents.searcher:SearcherAgent"
+prisma-screener = "src.agents.screener:ScreeningAgent"
