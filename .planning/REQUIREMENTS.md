@@ -1,8 +1,8 @@
-# 📋 Requisitos Detalhados - Agents-Prisma
+# 📋 Requisitos Detalhados - Agents-Prisma (LangGraph/LangChain)
 
 ## Visão Geral dos Requisitos
 
-Este documento detalha os requisitos funcionais, não-funcionais e de qualidade para cada componente do sistema multi-agentes PRISMA.
+Este documento detalha os requisitos funcionais, não-funcionais e de qualidade para cada componente do sistema multi-agentes PRISMA com arquitetura **LangGraph + LangChain**.
 
 ---
 
@@ -251,44 +251,68 @@ flowchart TD
 
 ---
 
-## 2. Requisitos de Persistência (PostgreSQL)
+## 2. Requisitos de Persistência (PostgreSQL + LangGraph)
 
 ### 2.1 Esquema de Tabelas
 
 | Tabela | Propósito | Campos Principais |
 |--------|-----------|-------------------|
 | `projects` | Controle de projetos revisões | id, name, created_at, status |
-| `phases` | Estado por fase PRISMA | project_id, phase_name, status, artifacts_json |
+| `phases` | Estado por fase PRISMA | project_id, phase_name, status, progress, artifacts_json |
 | `articles` | Metadados dos artigos buscados | id, project_id, source, doi, title, authors, year, abstract, pdf_url |
 | `screening_results` | Resultados de triagem | article_id, decision (include/exclude/maybe), reason, criteria_matched |
 | `eligibility_data` | Dados estruturados da leitura profunda | article_id, pico_json, risk_of_bias_json, quality_score |
 | `synthesis_output` | Saída final consolidada | project_id, markdown_content, json_export_url, created_at |
+| `langgraph_checkpoints` | Estado LangGraph (Novo!) | id, config JSONB, state JSONB, parent_id, created_at |
 
-### 2.2 Relações e Constraints
+### 2.1.1 Tabelas Principais (Existentes)
 
 ```sql
--- Exemplo: Tabela artigos (normalizada)
+-- projects: Controle de projetos revisões sistemáticas
+CREATE TABLE projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'active',  -- active/completed/archived
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- phases: Estado por fase PRISMA (4 fases sequenciais)
+CREATE TABLE phases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id),
+    
+    phase_name VARCHAR(100) NOT NULL,  -- identification/screening/eligibility/synthesis
+    status VARCHAR(50) DEFAULT 'pending',  -- pending/running/completed/error
+    
+    progress FLOAT DEFAULT 0.0 CHECK (progress BETWEEN 0 AND 100),
+    artifacts_json JSONB,  -- Artifacts específicos da fase
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- articles: Metadados dos artigos buscados (por projeto)
 CREATE TABLE articles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id),
     
-    -- Metadados básicos
-    source VARCHAR(50) NOT NULL,  -- pubmed/scopus/etc.
+    source VARCHAR(100) NOT NULL,  -- pubmed/scopus/web_of_science/google_scholar
+    
     doi VARCHAR(255) UNIQUE,
     title TEXT NOT NULL,
-    authors JSONB,  -- Array de strings
+    authors JSONB,  -- Array de strings: [{"name": "..."}, ...]
     
-    -- Dados temporais e bibliográficos
     year INT CHECK (year BETWEEN 1900 AND 2099),
     journal VARCHAR(255),
     volume INT,
     pages VARCHAR(100),
     
-    -- Links para conteúdo
     abstract TEXT,
     pdf_url TEXT,  -- URL oficial ou path local
     
-    -- Status de processamento
     screening_decision VARCHAR(20) CHECK (screening_decision IN ('include', 'exclude', 'maybe')),
     eligibility_status VARCHAR(50) DEFAULT 'pending',
     
@@ -296,39 +320,148 @@ CREATE TABLE articles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes para performance
-CREATE INDEX idx_articles_project ON articles(project_id);
-CREATE INDEX idx_articles_doi ON articles(doi);
-CREATE INDEX idx_articles_screening ON articles(screening_decision);
+-- screening_results: Resultados de triagem por lote
+CREATE TABLE screening_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id),
+    
+    batch_number INT NOT NULL,  -- Batch 1, 2, 3...
+    article_count INT NOT NULL,  -- Quantos artigos no batch
+    
+    results JSONB NOT NULL,  -- Array de resultados por artigo:
+        -- [{"article_id": "...", "decision": "include/exclude/maybe", "reason": "..."}]
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- eligibility_data: Dados estruturados da leitura profunda (PICO)
+CREATE TABLE eligibility_data (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id),
+    
+    article_id UUID NOT NULL REFERENCES articles(id),
+    
+    pico JSONB,  -- {"population": [...], "intervention": [...], "comparison": [...], "outcome": [...]}
+    risk_of_bias JSONB,  -- {"selection": "low/unclear/high", "confounding": "low/unclear/high"}
+    quality_score FLOAT CHECK (quality_score BETWEEN 0 AND 100),
+    
+    extracted_by_agent VARCHAR(255) NOT NULL,  -- Track which agent/tool did extraction
+    extraction_confidence FLOAT DEFAULT 0.0,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- synthesis_output: Saída final consolidada (Markdown + JSON)
+CREATE TABLE synthesis_output (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id),
+    
+    output_type VARCHAR(100) NOT NULL,  -- markdown/json/both
+    
+    content TEXT,  -- Markdown/Obsidian format
+    json_export_url TEXT,  -- URL para download ou path local
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- langgraph_checkpoints: Estado LangGraph (Novo!)
+CREATE TABLE langgraph_checkpoints (
+    id SERIAL PRIMARY KEY,
+    config JSONB NOT NULL DEFAULT '{"thread_id": "main"}',
+    parent_id INTEGER REFERENCES langgraph_checkpoints(id),
+    state JSONB NOT NULL,  -- Full TypedDict state snapshot
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_checkpoint_parent (parent_id),
+    INDEX idx_checkpoint_state (state) USING GIN
+);
+
+-- Create trigger to auto-save on phase completion
+CREATE OR REPLACE FUNCTION save_phase_checkpoint()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO langgraph_checkpoints (config, state, parent_id)
+    VALUES (NEW.config, NEW.state, COALESCE(
+        (SELECT id FROM langgraph_checkpoints WHERE config = NEW.config LIMIT 1), NULL
+    ));
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER save_on_phase_complete
+AFTER UPDATE ON phases
+FOR EACH ROW
+WHEN (NEW.status = 'completed')
+EXECUTE FUNCTION save_phase_checkpoint();
 ```
+
+### 2.1.2 Tabelas LangGraph (Novo!)
+
+| Tabela | Campos Principais | Propósito |
+|--------|-------------------|-----------|
+| `langgraph_checkpoints` | id, config JSONB, state JSONB, parent_id, created_at | Estado persistido após cada nó completar |
+| `langgraph_conversations` | project_id, phase, node_name, messages[], created_at | Histórico de conversas LLM por fase |
+
+### 2.1.3 Relações e Constraints
+
+```sql
+-- projects (1) ----< phases (N)
+CREATE INDEX idx_phases_project ON phases(project_id);
+
+-- projects (1) ----< articles (N)
+CREATE INDEX idx_articles_project ON articles(project_id);
+CREATE UNIQUE INDEX idx_articles_doi ON articles(doi);
+CREATE INDEX idx_articles_screening ON articles(screening_decision);
+
+-- phases (1) ----< screening_results (N)
+CREATE INDEX idx_screening_results_project ON screening_results(project_id);
+
+-- projects (1) ----< eligibility_data (N)
+CREATE INDEX idx_eligibility_data_project ON eligibility_data(project_id);
+
+-- synthesis_output (1) ----< project_id (N)
+CREATE INDEX idx_synthesis_output_project ON synthesis_output(project_id);
+
+-- langgraph_checkpoints (recursive parent-child)
+CREATE INDEX idx_checkpoint_parent ON langgraph_checkpoints(parent_id);
+CREATE INDEX idx_checkpoint_state USING GIN(langgraph_checkpoints.state);
+```
+
+### 2.1.4 LangGraph Auto-Checkpointing
+
+**Trigger:** `AFTER UPDATE ON phases` → `WHEN (NEW.status = 'completed')`  
+**Function:** `save_phase_checkpoint()` inserts state snapshot into `langgraph_checkpoints`.
 
 ---
 
-## 3. Requisitos Não-Funcionais Globais
+## 3. Requisitos Não-Funcionais Globais (LangGraph + Async I/O)
 
 ### 3.1 Performance
 
 | Métrica | Meta | Contexto |
 |---------|------|----------|
-| Tempo de busca (PubMed) | < 2s para 1.000 resultados | API REST oficial |
-| Tempo de triagem (500 artigos) | < 60s total | Batch processamento |
+| Tempo de busca (PubMed) | < 2s para 1.000 resultados | API REST oficial, asyncpg |
+| Tempo de triagem (500 artigos) | < 60s total | Batch processamento + LangChain Tools |
 | Tempo de extração PDF (30 páginas) | < 10s via MarkItDown | CPU single-threaded |
 | Tempo de síntese final | < 5s para projeto completo | Memory optimization |
+| Tempo de checkpointing por fase | < 50ms | Async PostgreSQL + JSONB |
 
-### 3.2 Confiabilidade
+### 3.2 Confiabilidade (LangGraph Fault Tolerance)
 
 - **Retry Logic:** Máximo 3 tentativas com backoff exponencial (para APIs externas)
 - **Fallback Chains:** MCP → Filesystem → Regex extraction
-- **Checkpointing:** Estado salvo a cada fase concluída (reprise após falha)
+- **Checkpointing:** Estado salvo a cada nó completar (per-phase persistence via `langgraph_checkpoints`)
 - **Logging:** Nível INFO padrão, DEBUG opcional para debugging
 
-### 3.3 Escalabilidade
+### 3.3 Escalabilidade (LangGraph Parallel Execution)
 
 | Cenário | Meta |
 |---------|------|
 | Projetos paralelos | Máximo 10 projetos simultâneos |
-| Artigos por projeto | Até 5.000 artigos (batched processamento) |
+| Artigos por projeto | Até 5.000 artigos (batched processamento, parallel subgraphs) |
 | Memória RAM | < 2GB por instância de agente |
+| Concurrency | PubMed/Scopus parallel execution (Diamond Pattern) |
 
 ---
 
@@ -343,13 +476,31 @@ CREATE INDEX idx_articles_screening ON articles(screening_decision);
 | Web of Science | `https://api.clarivate.com/wos/v2/articles` | API Key + Client ID | 60 req/min |
 | Google Scholar | Scraping/Custom API | N/A | ~30 req/min |
 
-### 4.2 MCP Servers Externos
+### 4.2 MCP Servers Externos + LangChain Tools
 
 | MCP Server | Função | Configuração |
 |------------|--------|--------------|
 | MarkItDown | PDF → Markdown | `markitdown://convert` |
 | Filesystem | Arquivos locais | `filesystem://read/write` |
 | GitHub/GitLab | Repositórios de código (opcional) | `github://repo`, `gitlab://project` |
+
+### 4.3 LangChain Tools Interface (Novo!)
+
+**Adaptation Pattern:** Wrap existing REST API wrappers (`pubmed_tool.py`, `scopus_tool.py`) as **LangChain Tools**.
+
+```python
+from langchain.tools import tool
+
+@tool("query_pubmed")
+def query_pubmed(query: str, max_results: int = 50) -> dict:
+    """Search PubMed for articles matching the query."""
+    # Existing REST API wrapper + LangChain Tool interface
+    return {"count": 123, "articles": [...]}
+
+# Register with AgentExecutor
+tools = [query_pubmed, query_scopus]
+agent = AgentExecutor(agent=..., tools=tools)
+```
 
 ---
 
@@ -377,29 +528,30 @@ Endpoints:
 
 ---
 
-## 6. Requisitos de Teste e Validação
+## 6. Requisitos de Teste e Validação (LangGraph Style)
 
 | ID | Tipo | Descrição | Critério de Aceite |
 |----|------|-----------|-------------------|
-| REQ-TEST-01 | Funcional | Agente Orquestrador completa pipeline sequencial | 4 fases concluídas sem erro |
-| REQ-TEST-02 | Funcional | Agente Busca retorna metadados válidos para PubMed/Scopus | ≥95% campos preenchidos |
-| REQ-TEST-03 | Funcional | Agente Triagem classifica corretamente com critérios JSON | 100% alinhamento manual |
-| REQ-TEST-04 | Funcional | MCP MarkItDown converte PDFs legíveis >80% | Texto extraído >500 palavras |
-| REQ-TEST-05 | Não-Funcional | Reprise após falha no meio do pipeline | Estado recomeça da fase anterior |
+| REQ-TEST-01 | Funcional | MainStateGraph completa pipeline sequencial | 4 fases concluídas sem erro |
+| REQ-TEST-02 | Funcional | Identify/Screen/Read/Synthesize nodes (pure functions) | Unit tests: 8+ cases, all passing |
+| REQ-TEST-03 | Funcional | LangChain Tools interface (pubmed/scopus tools) | Tool calling works with AgentExecutor |
+| REQ-TEST-04 | Funcional | Parallel execution (PubMed/Scopus subgraphs) | Concurrent processing verified |
+| REQ-TEST-05 | Funcional | Auto-checkpointing per phase | State persisted after each node completes |
+| REQ-TEST-06 | Não-Funcional | Reprise após falha no meio do pipeline | Estado recomeça da fase anterior |
 
 ---
 
-## 7. Critérios de Sucesso (Go/No-Go para Fase 1)
+## 7. Critérios de Sucesso (Go/No-Go para Fase 1 + 1.5)
 
-### 7.1 MVP (Mínimo Produto Viável)
+### 7.1 MVP (Mínimo Produto Viável - LangGraph Migration)
 
-✅ **Fase 1 aprovada se:**
-- [ ] Agente Orquestrador gerencia estado das 4 fases sequencialmente
-- [ ] Agente Busca extrai metadados de PubMed/Scopus com sucesso
-- [ ] Persistência PostgreSQL salva e recupera estado corretamente
-- [ ] Logging JSON estruturado para todas as transições
+✅ **Fase 1.5 aprovada se:**
+- [ ] `MainStateGraph` (TypedDict + Pydantic validation, nested by phase)
+- [ ] Identify/Screen/Read/Synthesize nodes (pure functions)
+- [ ] PubMed/Scopus subgraphs com parallel execution
+- [ ] Async PostgreSQL + auto-checkpointing per phase
 
-### 7.2 Core Completo (Fase 1 + 2)
+### 7.2 Core Completo (Fase 1 + 1.5 + 2)
 
 ✅ **Core aprovado se:**
 - [ ] Todos os requisitos funcionais acima atendidos
@@ -409,4 +561,4 @@ Endpoints:
 
 ---
 
-*Documento gerado via `/gsd:new-project` com skill `gsd-new-project`*
+*Documento gerado via `/gsd:new-project` com skill `gsd-new-project`, atualizado para LangGraph/LangChain architecture.*

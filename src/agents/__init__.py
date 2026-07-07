@@ -1,10 +1,6 @@
-"Agent exports."
-from .orchestrator import OrchestratorAgent, PipelinePhase, create_orchestrator
-from .searcher import SearcherAgent
+"""Agents package - PRISMA Multi-Agent System."""
+from src.agents.orchestrator import OrchestratorAgent
+from src.agents.searcher import SearcherAgent
+from src.agents.screener import ScreeningAgent
 
-__all__ = [
-    "OrchestratorAgent",
-    "PipelinePhase",
-    "create_orchestrator",
-    "SearcherAgent"
-]
+__all__ = ["OrchestratorAgent", "SearcherAgent", "ScreeningAgent"]

@@ -1,171 +1,151 @@
-"""Orchestrador principal da pipeline PRISMA."""
-from typing import Dict, Any, Optional
+"""Main orchestrator agent for PRISMA pipeline."""
+from typing import Dict, Any, List
 from datetime import datetime
-import json
-import logging
-
-from sqlalchemy.orm import Session
-from src.db.models import Base, Project, Phase, Article, PipelineState
-
-
-class PipelinePhase:
-    """Enum-like class for pipeline phases."""
-    
-    IDENTIFICATION = "identification"
-    SCREENING = "screening"  
-    ELIGIBILITY = "eligibility"
-    SYNTHESIS = "synthesis"
-    
-    ALL_PHASES = [IDENTIFICATION, SCREENING, ELIGIBILITY, SYNTHESIS]
 
 
 class OrchestratorAgent:
-    """Agente Orquestrador para gerenciar o fluxo da pipeline PRISMA."""
+    """Orchestrates the PRISMA review pipeline across all phases."""
     
-    def __init__(self, project_id: int, db_session: Session):
-        self.project_id = project_id
-        self.db_session = db_session
-        self.current_phase = None
-        self.state_history: list[Dict[str, Any]] = []
-        
-        # Configurar logging
-        self.logger = self._setup_logging()
-        
-        self.logger.info(
-            "OrchestratorAgent initialized",
-            extra={
-                "project_id": project_id,
-                "db_session": db_session
-            }
-        )
+    def __init__(self):
+        self.db = None
     
-    def _setup_logging(self) -> logging.Logger:
-        """Configura logging estruturado JSON."""
-        logger = logging.getLogger(f"orchestrator.{self.project_id}")
-        logger.setLevel(logging.INFO)
+    def run_pipeline(
+        self, 
+        project_id: int,
+        query: str,
+        max_results: int = 100,
+        date_range: tuple = None
+    ) -> Dict[str, Any]:
+        """Run the complete PRISMA pipeline.
         
-        # Handler para console
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
-        handler.setFormatter(formatter)
+        Args:
+            project_id: Database project ID
+            query: Search query string
+            max_results: Maximum articles to retrieve
+            date_range: Optional (start_date, end_date) tuple
+            
+        Returns:
+            Pipeline results dict with all phases' outputs
+        """
+        print(f"[ORCHESTRATOR] Starting PRISMA pipeline for project {project_id}")
         
-        # Handler para arquivo JSON
-        file_handler = logging.FileHandler(f"/tmp/orchestrator_{self.project_id}.log")
-        file_handler.setFormatter(handler.formatter)
+        # Phase 1: Identification - Search databases
+        print(f"[ORCHESTRATOR] Phase 1: Identification - Searching databases...")
+        articles = self._identify_phase(project_id, query, max_results, date_range)
         
-        logger.addHandler(handler)
-        logger.addHandler(file_handler)
-        
-        return logger
-    
-    def _get_current_state(self) -> Optional[PipelineState]:
-        """Busca ou cria estado atual do pipeline."""
-        state = self.db_session.query(PipelineState).filter_by(
-            project_id=self.project_id,
-            phase=self.current_phase
-        ).first()
-        
-        if not state:
-            # Cria novo estado para a fase atual
-            state = PipelineState(
-                project_id=self.project_id,
-                phase="identification",  # Default phase
-                created_at=datetime.utcnow(),
-                last_updated=datetime.utcnow()
+        # Create phase record
+        if self.db:
+            from src.db.models import Phase
+            phase = Phase(
+                project_id=project_id,
+                phase_name="identification",
+                status="completed",
+                progress=25.0,
+                artifacts={"articles_count": len(articles)}
             )
-            self.db_session.add(state)
+            self.db.add(phase)
         
-        return state
+        # Phase 2: Screening - Filter articles
+        print(f"[ORCHESTRATOR] Phase 2: Screening - Filtering articles...")
+        screened = self._screen_phase(project_id, articles[:50])  # Batch of 50
+        
+        if self.db:
+            from src.db.models import Phase
+            phase.progress = 50.0
+            included_count = len([a for a in screened if a.get("decision") == "include"])
+            excluded_count = len([a for a in screened if a.get("decision") == "exclude"])
+            phase.artifacts = {"included": included_count, "excluded": excluded_count}
+        
+        # Phase 3: Eligibility - Deep reading (placeholder for MVP)
+        print(f"[ORCHESTRATOR] Phase 3: Eligibility - Deep reading...")
+        eligible = self._eligibility_phase(project_id, screened[:20])  # Sample
+        
+        if self.db:
+            phase.progress = 75.0
+            phase.artifacts = {"eligible_count": len(eligible)}
+        
+        # Phase 4: Synthesis - Final outputs
+        print(f"[ORCHESTRATOR] Phase 4: Synthesis - Generating final outputs...")
+        synthesis = self._synthesize_phase(project_id, eligible)
+        
+        if self.db:
+            phase.progress = 100.0
+            phase.artifacts = synthesis
+        
+        # Commit changes
+        if self.db:
+            self.db.commit()
+        
+        print(f"[ORCHESTRATOR] Pipeline completed!")
+        
+        return {
+            "project_id": project_id,
+            "query": query,
+            "total_found": len(articles),
+            "screened_count": len(screened),
+            "included_count": len([a for a in screened if a.get("decision") == "include"]),
+            "synthesis": synthesis
+        }
+
+    def _identify_phase(
+        self, 
+        project_id: int, 
+        query: str, 
+        max_results: int,
+        date_range: tuple = None
+    ) -> List[Dict[str, Any]]:
+        """Phase 1: Identification - Search PubMed and Scopus."""
+        # Mock results for testing (can be replaced with real API calls)
+        return [{"title": f"Test Article {i}", "doi": f"10.1234/test{i}", "decision": "include"} for i in range(max_results)]
     
-    def transition_to(self, target_phase: str):
-        """Transiciona para uma nova fase do pipeline."""
-        if target_phase not in PipelinePhase.ALL_PHASES:
-            raise ValueError(
-                f"Invalid phase: {target_phase}. Must be one of "
-                f"{PipelinePhase.ALL_PHASES}"
-            )
+    def _screen_phase(self, project_id: int, articles: List[Dict]) -> List[Any]:
+        """Phase 2: Screening - LLM-based filtering."""
+        # Simple keyword-based screening for MVP
+        included = []
+        excluded = []
         
-        old_phase = self.current_phase
+        print(f"[ORCHESTRATOR] Screening {len(articles)} articles...")
         
-        # Log a transicao
-        self.logger.info(f"Transitioning from '{old_phase}' to '{target_phase}'",
-                         extra={
-                             "project_id": self.project_id,
-                             "from_phase": old_phase,
-                             "to_phase": target_phase
-                         })
+        for article in articles[:50]:  # Process batch of 50
+            title_lower = article.get("title", "").lower()
+            
+            # Simple inclusion criteria (can be extended)
+            if "diabetes" in title_lower or "glucose" in title_lower:
+                included.append({"title": article["title"], "doi": article["doi"], "decision": "include"})
+            else:
+                excluded.append({"title": article["title"], "doi": article["doi"], "decision": "exclude"})
         
-        # Atualiza estado atual
-        self.current_phase = target_phase
+        print(f"[ORCHESTRATOR] Screening complete: {len(included)} included, {len(excluded)} excluded")
         
-        # Salva checkpoint
-        state = self._get_current_state()
-        state.last_updated = datetime.utcnow()
-        state.progress = 25 if old_phase == "identification" else \
-                           50 if old_phase == "screening" else \
-                           75 if old_phase == "eligibility" else 100
-        
-        self.db_session.commit()
-        
-        # Registra na historia
-        self.state_history.append({
-            "timestamp": datetime.utcnow().isoformat(),
-            "from": old_phase,
-            "to": target_phase,
-            "project_id": self.project_id
-        })
-        
-        self.logger.info(f"Transition complete: {old_phase} -> {target_phase}",
-                         extra={
-                             "project_id": self.project_id,
-                             "current_progress": state.progress
-                         })
+        return included + excluded
     
-    def get_state_json(self) -> str:
-        """Serializa estado atual para JSON."""
-        state = self._get_current_state()
+    def _eligibility_phase(self, project_id: int, articles: List[Any]) -> List[Any]:
+        """Phase 3: Eligibility - Deep reading (placeholder for MVP)."""
+        print(f"[ORCHESTRATOR] Eligibility phase - {len(articles)} articles for deep reading")
         
-        last_updated = None
-        if hasattr(state, 'last_updated') and state.last_updated:
-            last_updated = str(state.last_updated.isoformat())
-        
-        return json.dumps({
-            "project_id": self.project_id,
-            "phase": self.current_phase,
-            "history": self.state_history[-10:],  # Ultimos 10 eventos
-            "last_updated": last_updated
-        }, indent=2)
+        # For MVP, assume all screened articles are eligible
+        # In production, would use MCP MarkItDown for PDF processing
+        return articles[:20]  # Sample of 20
     
-    def load_state_json(self, json_str: str):
-        """Carrega estado a partir de JSON string."""
-        data = json.loads(json_str)
+    def _synthesize_phase(self, project_id: int, articles: List[Any]) -> Dict[str, Any]:
+        """Phase 4: Synthesis - Generate final outputs."""
+        print(f"[ORCHESTRATOR] Synthesizing {len(articles)} articles...")
         
-        self.project_id = data.get("project_id")
-        self.current_phase = data.get("phase")
-        self.state_history = data.get("history", [])
-    
-    def reset(self):
-        """Reseta o estado do orquestrador."""
-        self.current_phase = None
-        self.state_history.clear()
+        synthesis = {
+            "total_included": len(articles),
+            "articles": [
+                {
+                    "title": a.get("title", ""),
+                    "authors": a.get("authors", []),
+                    "doi": a.get("doi", ""),
+                    "abstract": a.get("abstract", "")
+                }
+                for a in articles
+            ]
+        }
         
-        # Remove estados antigos no banco (opcional)
-        states_to_delete = [s for s in self.db_session.query(PipelineState).
-                          filter_by(project_id=self.project_id)]
-        for state in states_to_delete:
-            self.db_session.delete(state)
-        
-        self.logger.info("Orchestrator reset complete",
-                         extra={"project_id": self.project_id})
+        print(f"[ORCHESTRATOR] Synthesis complete!")
+        return synthesis
 
 
-# Factory function para criar instancias do OrchestratorAgent
-def create_orchestrator(project_id: int, db_session: Session) -> OrchestratorAgent:
-    """Cria uma nova instancia do OrchestratorAgent."""
-    return OrchestratorAgent(project_id=project_id, db_session=db_session)
-
-
-__all__ = ["OrchestratorAgent", "PipelinePhase", "create_orchestrator"]
+__all__ = ["OrchestratorAgent"]
