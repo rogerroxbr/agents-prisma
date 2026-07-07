@@ -8,6 +8,8 @@ def mock_apis(mocker):
     mock_pubmed = mocker.patch('src.tools.pubmed_tool.PubMedTool.search')
     mock_scopus = mocker.patch('src.tools.scopus_tool.ScopusTool.search')
     mock_screener = mocker.patch('src.agents.screener.ScreeningAgent.screen_batch')
+    mock_md_tool = mocker.patch('src.agents.nodes.read_node.MarkItDownTool')
+    mock_reader = mocker.patch('src.agents.nodes.read_node.DeepReaderAgent')
     
     # Mock PubMed returns 1 article
     mock_pubmed.return_value = [{
@@ -38,7 +40,25 @@ def mock_apis(mocker):
         
     mock_screener.side_effect = mock_screen_logic
     
-    return (mock_pubmed, mock_scopus, mock_screener)
+    # Mock Read Node components
+    mock_md_instance = mocker.MagicMock()
+    mock_md_instance.process_article.return_value = "Mock Markdown Text"
+    mock_md_tool.return_value = mock_md_instance
+    
+    mock_reader_instance = mocker.MagicMock()
+    mock_reader_instance.analyze_article.return_value = {
+        "population": "Mock Population",
+        "intervention": "Mock Intervention",
+        "comparator": "Mock Comparator",
+        "outcome": "Mock Outcome",
+        "risk_of_bias": "Low",
+        "methodology": "RCT",
+        "confidence": 0.9,
+        "markdown": "Mock Markdown Text"
+    }
+    mock_reader.return_value = mock_reader_instance
+    
+    return (mock_pubmed, mock_scopus, mock_screener, mock_md_tool, mock_reader)
 
 
 def test_full_pipeline_execution(mock_apis):
