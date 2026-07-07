@@ -21,3 +21,12 @@ def get_database_url():
 
 # Default database URL (can be overridden by environment variable)
 db_url = get_database_url()
+
+def get_psycopg_url():
+    """Get database URL formatted for psycopg3 (without +asyncpg)."""
+    url = get_database_url()
+    if url.startswith("sqlite:///"):
+        # LangGraph PostgresSaver doesn't support sqlite, fallback for testing
+        return url
+    return url.replace("postgresql+asyncpg://", "postgresql://")
+

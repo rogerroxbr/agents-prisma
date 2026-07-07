@@ -5,18 +5,34 @@ from langgraph.graph import StateGraph, START, END
 from src.agents.state import PRISMAState
 from src.agents.nodes.identify_node import identify_node
 from src.agents.nodes.screen_node import screen_node
+from src.agents.nodes.read_node import read_node
+from src.agents.nodes.synthesize_node import synthesize_node
 
 
 def route_after_identify(state: PRISMAState) -> str:
     """Routing logic after identification phase."""
-    # Always proceed to screen for now
     return "screen"
 
 
 def route_after_screen(state: PRISMAState) -> str:
     """Routing logic after screening phase."""
-    # Pending reading phase implementation, go to END
-    return END
+    screen_state = state.get("screening")
+    ident_state = state.get("identification")
+    
+    if not screen_state or not ident_state:
+        return "read"
+        
+    total_articles = ident_state.total_found
+    batch_size = screen_state.current_batch_size
+    processed = screen_state.batches_processed * batch_size
+    
+    # Simple pagination logic: if we haven't processed all articles, loop back to screen
+    # For now, since identify returns all at once and screen processes all at once in MVP,
+    # we just proceed to read. But this is where the batching condition would go.
+    if processed < total_articles and total_articles > 0:
+        pass # In a real batched setup, we'd return 'screen' to loop.
+        
+    return "read"
 
 
 class MainStateGraph:
@@ -32,13 +48,19 @@ class MainStateGraph:
         # Add Nodes
         self.workflow.add_node("identify", identify_node)
         self.workflow.add_node("screen", screen_node)
+        self.workflow.add_node("read", read_node)
+        self.workflow.add_node("synthesize", synthesize_node)
         
         # Add Edges
         self.workflow.add_edge(START, "identify")
         
-        # Conditional edges could be used if we process in batches
+        # Conditional edges
         self.workflow.add_conditional_edges("identify", route_after_identify)
         self.workflow.add_conditional_edges("screen", route_after_screen)
+        
+        # Linear edges for the rest
+        self.workflow.add_edge("read", "synthesize")
+        self.workflow.add_edge("synthesize", END)
     
     def compile(self, checkpointer=None) -> Any:
         """Compile and return the graph application.
