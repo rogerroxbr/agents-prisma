@@ -253,18 +253,78 @@ Configurar ambiente CrewAI + PostgreSQL e implementar o Agente Orquestrador com 
 
 ---
 
-### 📊 Entregáveis Finais da Fase 1.5 (LangGraph Migration)
+### 🎯 Fase 1.5: LangGraph Migration (~3 dias est.) - PLAN.md COMPLETA ✅
 
-| Tipo | Artefato | Formato | Localização | Status |
-|------|----------|---------|-------------|--------|
-| **Código** | `src/agents/state.py` | TypedDict + Pydantic | `agents/state.py` | ⏺️ Pendente |
-| **Código** | `src/agents/orchestrator_langgraph.py` | LangGraph StateGraph | `agents/orchestrator_langgraph.py` | ⏺️ Pendente |
-| **Código** | `src/agents/subgraphs/*_subgraph.py` | LangGraph Subgraphs | `agents/subgraphs/*.py` | ⏺️ Pendente |
-| **DB** | `src/db/langgraph_checkpoint.py` | Async PostgreSQL + JSONB | `db/langgraph_checkpoint.py` | ⏺️ Pendente |
+#### Checklist de Execução (Phase 1.5)
+- [x] **PLAN.md criado** → `.planning/phases/1.5-langgraph-migration/PLAN.md`
+- [x] **Task Group B: Cleanup & Refactor Imports** (~30m est.) - Clean up circular imports, centralize LangGraph imports
+  - ✅ `src/agents/core.py` (NEW) - Centralized LangGraph imports (`MainStateGraph`, `PubMedSubgraph`, `ScopusSubgraph`)
+  - ✅ `src/agents/__init__.py` (CLEAN) - Minimal documentation only
+  - ✅ `src/__init__.py` (UPDATED) - Direct imports from submodules
+  - ✅ `src/main.py` (UPDATED) - Direct import of main module
+- [ ] **TypedDict State Schema** (`src/agents/state.py`) - Nested by phase (identification/screening/read/synthesis)
+- [ ] **MainStateGraph Implementation** (`src/agents/orchestrator_langgraph.py`) - Identify/Screen/Read/Synthesize nodes (pure functions)
+- [ ] **PubMed/Scopus Subgraphs** (`src/agents/subgraphs/*.py`) - Parallel execution com Diamond Pattern
+- [ ] **Async PostgreSQL + Auto-checkpointing** (`src/db/langgraph_checkpoint.py`) - Per-phase persistence
+
+#### Entregáveis:
+- ✅ `.planning/phases/1.5-langgraph-migration/PLAN.md` - Task breakdown (28 atomic tasks, dependencies, verification)
+- ✅ `src/agents/core.py` - Centralized LangGraph imports (Task Group B complete)
+- ⏳ `src/agents/state.py` - TypedDict state schema (nested by phase)
+- ⏳ `src/agents/orchestrator_langgraph.py` - Main StateGraph implementation
+- ⏳ `src/agents/subgraphs/pubmed_subgraph.py`, `scopus_subgraph.py` - Parallel source graphs
+- ⏳ `src/db/langgraph_checkpoint.py` - LangGraph checkpoint table + ops
 
 ---
 
-### 🕒 Estimativa de Tempo (Atualizado: 04/07/2026)
+### 🚀 Próximos Passos Imediatos (Phase 1.5+)
+
+#### Alta Prioridade (Next 24-48h)
+1. **Review PLAN.md** → Validação com stakeholder do plano detalhado
+   - 28 atomic tasks, dependencies graph, verification criteria
+   
+2. **Start Task A-01 to A-03** → State Schema Definition (~5h)
+   - Define TypedDict state schema for `PRISMAState` (root)
+   - Create nested states: `IdentificationState`, `ScreeningState`, etc.
+   - Add Pydantic validation for phase-specific data
+
+3. **Execute Full Pipeline Test** (`python -m src.agents.searcher`)
+   - Run: `python -m src.agents.main --query "diabetes" --max-results 3`
+   - Verify end-to-end flow: Search → Screen → Eligibility → Synthesis</parameter>
+<parameter=oldString>
+### 🎯 Fase 1.5: LangGraph Migration (~3 dias est.) - PLAN.md COMPLETA ✅
+
+#### Checklist de Execução (Phase 1.5)
+- [x] **PLAN.md criado** → `.planning/phases/1.5-langgraph-migration/PLAN.md`
+- [ ] **TypedDict State Schema** (`src/agents/state.py`) - Nested by phase (identification/screening/read/synthesis)
+- [ ] **MainStateGraph Implementation** (`src/agents/orchestrator_langgraph.py`) - Identify/Screen/Read/Synthesize nodes (pure functions)
+- [ ] **PubMed/Scopus Subgraphs** (`src/agents/subgraphs/*.py`) - Parallel execution com Diamond Pattern
+- [ ] **Async PostgreSQL + Auto-checkpointing** (`src/db/langgraph_checkpoint.py`) - Per-phase persistence
+
+#### Entregáveis:
+- ✅ `.planning/phases/1.5-langgraph-migration/PLAN.md` - Task breakdown (28 atomic tasks, dependencies, verification)
+- ⏳ `src/agents/state.py` - TypedDict state schema (nested by phase)
+- ⏳ `src/agents/orchestrator_langgraph.py` - Main StateGraph implementation
+- ⏳ `src/agents/subgraphs/pubmed_subgraph.py`, `scopus_subgraph.py` - Parallel source graphs
+- ⏳ `src/db/langgraph_checkpoint.py` - LangGraph checkpoint table + ops
+
+---
+
+### 🚀 Próximos Passos Imediatos (Phase 1.5+)
+
+#### Alta Prioridade (Next 24-48h)
+1. **Review PLAN.md** → Validação com stakeholder do plano detalhado
+   - 28 atomic tasks, dependencies graph, verification criteria
+   
+2. **Start Task A-01 to A-03** → State Schema Definition (~5h)
+   - Define TypedDict state schema for `PRISMAState` (root)
+   - Create nested states: `IdentificationState`, `ScreeningState`, etc.</parameter>
+</function>
+</tool_call>
+<tool_call>
+<function=edit>
+<parameter=filePath>
+C:\Users\Roger\Documents\Projetos\Agents-Prisma\.planning\ROADMAP.md
 
 | Tarefa | Dias | Horas | Dependência |
 |--------|------|-------|-------------|

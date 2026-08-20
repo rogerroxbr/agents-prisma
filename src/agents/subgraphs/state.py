@@ -1,9 +1,12 @@
 """State definitions for Search Subgraphs."""
-from typing import TypedDict, List, Dict, Any
+
+from typing import Any, TypedDict
+
 
 class SearchSubgraphState(TypedDict):
     """State for search subgraphs (PubMed and Scopus)."""
+
     query: str
     max_results: int
-    raw_results: List[Dict[str, Any]]
-    metadata_results: List[Dict[str, Any]]
+    raw_results: list[dict[str, Any]]
+    metadata_results: list[dict[str, Any]]
