@@ -1,6 +1,8 @@
 """Integration test for the full PRISMA LangGraph pipeline."""
 import pytest
+
 from src.agents.orchestrator_langgraph import MainStateGraph
+
 
 @pytest.fixture
 def mock_apis(mocker):

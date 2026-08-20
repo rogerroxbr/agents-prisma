@@ -1,12 +1,15 @@
-import pytest
 from datetime import datetime
+
+import pytest
+
 from src.agents.state import (
     ArticleMetadata,
+    EligibilityState,
     IdentificationState,
     ScreeningState,
-    EligibilityState,
-    SynthesisState
+    SynthesisState,
 )
+
 
 def test_article_metadata_valid():
     """Test creating a valid ArticleMetadata instance."""

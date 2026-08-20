@@ -1,6 +1,7 @@
 """Unit tests for ScreeningAgent (with pytest-mock)."""
 import pytest
-from src.agents.screener import ScreeningAgent, ScreeningDecision, PICOExtracted
+
+from src.agents.screener import PICOExtracted, ScreeningAgent, ScreeningDecision
 
 
 @pytest.fixture

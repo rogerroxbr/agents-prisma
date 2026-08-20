@@ -1,7 +1,7 @@
-import pytest
-from src.agents.orchestrator_langgraph import MainStateGraph
-from src.agents.state import PRISMAState
 from langgraph.graph.state import CompiledStateGraph
+
+from src.agents.orchestrator_langgraph import MainStateGraph
+
 
 def test_main_state_graph_compilation():
     """Test that MainStateGraph compiles successfully."""

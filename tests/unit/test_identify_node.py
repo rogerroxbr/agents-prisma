@@ -1,6 +1,8 @@
 """Unit tests for identify_node and subgraphs."""
 import pytest
+
 from src.agents.nodes.identify_node import identify_node
+
 
 @pytest.fixture
 def mock_subgraphs(mocker):
