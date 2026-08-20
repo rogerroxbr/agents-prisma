@@ -115,15 +115,27 @@ def synthesize_node(state: PRISMAState) -> PRISMAState:
     # Append Flowchart to Markdown
     final_markdown = markdown_report + "\n\n## Fluxograma PRISMA\n\n" + mermaid_chart
 
-    # Save physically to outputs/ folder
-    os.makedirs(os.path.join(os.path.dirname(__file__), "..", "outputs"), exist_ok=True)
-    out_path = os.path.join(
-        os.path.dirname(__file__), "..", "outputs", "synthesis_report.md"
-    )
-    with open(out_path, "w", encoding="utf-8") as f:
+    # Save physically to outputs/reports/ folder
+    reports_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "outputs", "reports")
+    os.makedirs(reports_dir, exist_ok=True)
+    out_path_md = os.path.join(reports_dir, "synthesis_report.md")
+    with open(out_path_md, "w", encoding="utf-8") as f:
         f.write(final_markdown)
 
-    print(f"[SYNTHESIZE_NODE] Report saved to {out_path}")
+    # Save JSON export
+    import json
+    json_export = {
+        "metadata": {"name": "Revisão Sistemática (Agents-Prisma)"},
+        "stats": stats,
+        "eligible_articles": eligible_articles,
+        "synthesis": synthesis_result.model_dump()
+    }
+    out_path_json = os.path.join(reports_dir, "synthesis_report.json")
+    with open(out_path_json, "w", encoding="utf-8") as f:
+        json.dump(json_export, f, ensure_ascii=False, indent=2)
+
+    print(f"[SYNTHESIZE_NODE] Report saved to {out_path_md}")
+    print(f"[SYNTHESIZE_NODE] JSON export saved to {out_path_json}")
 
     # Update state
     synthesis_state = state.get("synthesis")
