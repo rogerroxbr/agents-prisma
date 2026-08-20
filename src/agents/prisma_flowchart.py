@@ -1,17 +1,18 @@
-from typing import Dict, Any
+from typing import Any
+
 
 class PRISMAFlowchartGenerator:
     """
     Generates PRISMA flowcharts in Mermaid.js syntax based on pipeline statistics.
     """
-    
+
     def __init__(self):
         pass
 
-    def generate_mermaid(self, stats: Dict[str, Any]) -> str:
+    def generate_mermaid(self, stats: dict[str, Any]) -> str:
         """
         Generates the PRISMA flowchart in Mermaid syntax.
-        
+
         Expected stats dictionary structure:
         {
             "identified": 150,
@@ -35,7 +36,7 @@ class PRISMAFlowchartGenerator:
         assessed = stats.get("assessed_for_eligibility", 0)
         eligibility_excluded = stats.get("eligibility_excluded", 0)
         included = stats.get("included", 0)
-        
+
         mermaid_template = f"""```mermaid
 flowchart TD
     %% Identificação

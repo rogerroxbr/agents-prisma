@@ -1,15 +1,15 @@
 """Screening phase - LLM-based filtering (pure function)."""
-from typing import Any, Dict, List
 
-from src.agents.state import PRISMAState, ScreeningState
 from src.agents.screener import ScreeningAgent
+from src.agents.state import PRISMAState, ScreeningState
+
 
 def screen_node(state: PRISMAState) -> PRISMAState:
     """Pure function: Screen articles with LLM-based PICO extraction.
-    
+
     Args:
         state: Current PRISMAState
-        
+
     Returns:
         Updated state with screening_results
     """
@@ -17,18 +17,18 @@ def screen_node(state: PRISMAState) -> PRISMAState:
     if not ident_state or not ident_state.sources:
         print("[SCREEN_NODE] No articles found in identification state")
         return {"phase": "read"}
-        
+
     # Gather all raw metadata from all sources
     raw_metadata = []
     for source_articles in ident_state.sources.values():
         raw_metadata.extend(source_articles)
-        
+
     screen_state = state.get("screening")
     if not screen_state:
         screen_state = ScreeningState()
-        
+
     batch_size = screen_state.current_batch_size
-    
+
     try:
         screener = ScreeningAgent()
         # criteria logic could be added here
@@ -37,7 +37,7 @@ def screen_node(state: PRISMAState) -> PRISMAState:
     except Exception as e:
         print(f"[SCREEN_NODE] Error during screening: {e}")
         results = []
-    
+
     # Update decisions dictionary in ScreeningState
     decisions = screen_state.decisions
     for i, r in enumerate(results):
@@ -48,20 +48,21 @@ def screen_node(state: PRISMAState) -> PRISMAState:
             "decision": r.get("decision"),
             "reason": r.get("reason"),
             "score": r.get("score"),
-            "pico_extracted": r.get("pico_extracted")
+            "pico_extracted": r.get("pico_extracted"),
         }
         if article_id not in screen_state.articles_reviewed:
             screen_state.articles_reviewed.append(article_id)
-            
+
     screen_state.decisions = decisions
     screen_state.batches_processed += 1
-    
+
     included = [r for r in results if r.get("decision") == "include"]
-    
+
     return {
         "screening": screen_state,
         "progress": min(50.0, (len(results) / max(len(raw_metadata), 1)) * 25 + 25),
-        "phase": "read"  # Proceed to read phase next
+        "phase": "read",  # Proceed to read phase next
     }
+
 
 __all__ = ["screen_node"]

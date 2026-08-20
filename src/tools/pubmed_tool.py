@@ -1,7 +1,10 @@
 """Tool for PubMed API integration."""
-from typing import List, Dict, Any
-import requests
+
 from datetime import date
+from typing import Any
+from urllib.parse import quote_plus
+
+import requests
 
 
 class PubMedTool:
@@ -11,15 +14,15 @@ class PubMedTool:
         self.base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
         self.headers = {"Content-Type": "application/json"}
 
-    def search(self, query: str, date_range: tuple[date, date], max_results: int = 100) -> List[Dict[str, Any]]:
+    def search(
+        self, query: str, date_range: tuple[date, date], max_results: int = 100
+    ) -> list[dict[str, Any]]:
         """Executes a PubMed search and returns metadata."""
 
         # Build the URL with parameters
-        url = f"{self.base_url}?db=pubmed&term={query}&retmax={max_results}"
-        params = {
-            "date": f"{date_range[0]} TO {date_range[1]}",
-            "retmode": "json"
-        }
+        safe_query = quote_plus(query)
+        url = f"{self.base_url}?db=pubmed&term={safe_query}&retmax={max_results}"
+        params = {"date": f"{date_range[0]} TO {date_range[1]}", "retmode": "json"}
 
         # Execute the request
         response = requests.get(url, params=params)
@@ -29,8 +32,8 @@ class PubMedTool:
 
         return self._parse_results(response.json())
 
-    def _parse_results(self, json_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Pares PubMed JSON response to standardized format."""
+    def _parse_results(self, json_data: dict[str, Any]) -> list[dict[str, Any]]:
+        """Parses PubMed JSON response to standardized format."""
 
         results = []
 
@@ -45,7 +48,7 @@ class PubMedTool:
                 "authors": [],
                 "abstract": "",
                 "pub_date": None,
-                "url": f"https://www.ncbi.nlm.nih.gov/plo/1/{item.get('doi', '')}"
+                "url": f"https://www.ncbi.nlm.nih.gov/plo/1/{item.get('doi', '')}",
             }
 
             # Extract authors if available
