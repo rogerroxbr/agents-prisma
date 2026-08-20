@@ -1,6 +1,8 @@
 """Unit tests for PubMedTool."""
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from src.tools.pubmed_tool import PubMedTool
 
 

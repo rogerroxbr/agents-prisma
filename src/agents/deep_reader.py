@@ -1,10 +1,14 @@
 """Deep Reader Agent for full-text extraction and analysis."""
 
+import logging
 import os
+import time
 from typing import Any
 
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class DeepExtractionResult(BaseModel):
@@ -34,14 +38,17 @@ class DeepExtractionResult(BaseModel):
 class DeepReaderAgent:
     """Agent responsible for analyzing the full markdown text of an article."""
 
-    def __init__(self, model_name: str = "gpt-4o"):
-        api_key = os.getenv("OPENAI_API_KEY", "dummy_key")
-        base_url = os.getenv("OPENAI_API_BASE")
+    def __init__(self, model_name: str = "local-model", temperature: float = 0.0):
+        # Default to local LM Studio
+        api_base = os.getenv("OPENAI_API_BASE", "http://localhost:1234/v1")
+        api_key = os.getenv("OPENAI_API_KEY", "lm-studio")
 
-        if base_url:
-            self.llm = ChatOpenAI(model=model_name, api_key=api_key, base_url=base_url)
-        else:
-            self.llm = ChatOpenAI(model=model_name, api_key=api_key)
+        self.llm = ChatOpenAI(
+            model=model_name,
+            temperature=temperature,
+            api_key=api_key,
+            base_url=api_base,
+        )
 
         self.structured_llm = self.llm.with_structured_output(DeepExtractionResult)
 
@@ -67,43 +74,40 @@ Please analyze the text and extract the required structured information.
 """
 
     def analyze_article(
-        self, article_metadata: dict[str, Any], markdown_text: str
+        self, article_metadata: dict[str, Any], markdown_text: str, retries: int = 2
     ) -> dict[str, Any]:
-        """Analyze the full markdown text of an article.
-
-        Args:
-            article_metadata: Dictionary containing title, doi, etc.
-            markdown_text: The full text of the article converted to markdown.
-
-        Returns:
-            Dictionary containing the extracted fields.
-        """
+        """Analyze the full markdown text of an article with retry logic."""
         title = article_metadata.get("title", "Unknown Title")
         prompt = self._build_prompt(title, markdown_text)
 
-        print(f"[DEEP_READER] Analyzing full text for: {title[:50]}...")
-        try:
-            result = self.structured_llm.invoke(prompt)
-            return {
-                "population": result.population,
-                "intervention": result.intervention,
-                "comparator": result.comparison,  # Map comparison to comparator for state consistency
-                "outcome": result.outcome,
-                "risk_of_bias": result.risk_of_bias,
-                "methodology": result.methodology,
-                "confidence": result.confidence_score,
-                "markdown": markdown_text,
-            }
-        except Exception as e:
-            print(f"[DEEP_READER] Error during LLM extraction: {e}")
-            # Fallback response
-            return {
-                "population": "Error during extraction",
-                "intervention": "Error during extraction",
-                "comparator": "Error during extraction",
-                "outcome": "Error during extraction",
-                "risk_of_bias": "Unknown",
-                "methodology": "Unknown",
-                "confidence": 0.0,
-                "markdown": markdown_text,
-            }
+        logger.info(f"[DEEP_READER] Analyzing full text for: {title[:50]}...")
+        
+        for attempt in range(retries):
+            try:
+                result = self.structured_llm.invoke(prompt)
+                return {
+                    "population": result.population,
+                    "intervention": result.intervention,
+                    "comparator": result.comparison,
+                    "outcome": result.outcome,
+                    "risk_of_bias": result.risk_of_bias,
+                    "methodology": result.methodology,
+                    "confidence": result.confidence_score,
+                    "markdown": markdown_text,
+                }
+            except Exception as e:
+                logger.warning(f"[DEEP_READER] Error during LLM extraction (attempt {attempt + 1}/{retries}): {e}")
+                time.sleep(1)
+        
+        logger.error(f"[DEEP_READER] Failed to extract details for {title[:50]} after {retries} attempts.")
+        # Fallback response
+        return {
+            "population": "Error during extraction",
+            "intervention": "Error during extraction",
+            "comparator": "Error during extraction",
+            "outcome": "Error during extraction",
+            "risk_of_bias": "Unknown",
+            "methodology": "Unknown",
+            "confidence": 0.0,
+            "markdown": markdown_text,
+        }

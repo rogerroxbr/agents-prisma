@@ -1,11 +1,15 @@
 """Read / Eligibility phase - Deep reading (pure function)."""
 
+import logging
+
 from src.agents.deep_reader import DeepReaderAgent
 from src.agents.state import EligibilityState, PRISMAState
 from src.tools.markitdown_tool import MarkItDownTool
 
+logger = logging.getLogger(__name__)
 
-def read_node(state: PRISMAState) -> PRISMAState:
+
+def read_node(state: PRISMAState) -> dict:
     """Pure function: Deep read full text for eligible articles.
 
     Args:
@@ -17,7 +21,7 @@ def read_node(state: PRISMAState) -> PRISMAState:
     screen_state = state.get("screening")
 
     if not screen_state or not screen_state.decisions:
-        print("[READ_NODE] No screened articles found")
+        logger.info("[READ_NODE] No screened articles found")
         return {"phase": "synthesize"}
 
     # Get all included articles
@@ -28,10 +32,10 @@ def read_node(state: PRISMAState) -> PRISMAState:
     ]
 
     if not included_ids:
-        print("[READ_NODE] No articles were included for reading")
+        logger.info("[READ_NODE] No articles were included for reading")
         return {"phase": "synthesize"}
 
-    print(f"[READ_NODE] Deep reading {len(included_ids)} eligible articles...")
+    logger.info(f"[READ_NODE] Deep reading {len(included_ids)} eligible articles...")
 
     eligibility_state = state.get("eligibility")
     if not eligibility_state:
@@ -44,13 +48,11 @@ def read_node(state: PRISMAState) -> PRISMAState:
     markdown_outputs = []
 
     # Retrieve raw metadata dictionary for context to extract the DOI
-    # We can fetch it by iterating through ident_state.sources
     ident_state = state.get("identification")
     articles_map = {}
     if ident_state and ident_state.sources:
         for source_articles in ident_state.sources.values():
             for art in source_articles:
-                # Same ID logic as in screen_node.py
                 art_id = hash(art.get("doi") or art.get("title") or "")
                 articles_map[art_id] = art
 
@@ -58,42 +60,47 @@ def read_node(state: PRISMAState) -> PRISMAState:
     total_confidence = 0.0
 
     for aid in included_ids:
-        article = articles_map.get(aid, {"title": f"Unknown {aid}", "doi": ""})
-        doi = article.get("doi")
+        try:
+            article = articles_map.get(aid, {"title": f"Unknown {aid}", "doi": ""})
+            doi = article.get("doi")
 
-        # 1. Download and convert to Markdown
-        if doi:
-            markdown_text = md_tool.process_article(doi)
-            pdfs_extracted += 1
-        else:
-            print(
-                f"[READ_NODE] Warning: No DOI for article {aid}, falling back to abstract if available."
-            )
-            markdown_text = article.get("abstract", "No full text available.")
+            # 1. Download and convert to Markdown
+            if doi:
+                markdown_text = md_tool.process_article(doi)
+                if not markdown_text.startswith("Error:"):
+                    pdfs_extracted += 1
+            else:
+                logger.warning(
+                    f"[READ_NODE] Warning: No DOI for article {aid}, falling back to abstract if available."
+                )
+                markdown_text = article.get("abstract", "No full text available.")
 
-        # 2. Deep read extraction
-        result = reader.analyze_article(article, markdown_text)
-        result["article_id"] = aid
-        pico_data.append(result)
+            # 2. Deep read extraction
+            result = reader.analyze_article(article, markdown_text)
+            result["article_id"] = aid
+            pico_data.append(result)
 
-        total_confidence += result.get("confidence", 0.0)
+            total_confidence += result.get("confidence", 0.0)
 
-        # Format the markdown output for the user
-        md_output = f"# {article.get('title')}\n\n**DOI**: {doi}\n\n"
-        md_output += "## Extraction Results\n"
-        md_output += f"- **Population**: {result['population']}\n"
-        md_output += f"- **Intervention**: {result['intervention']}\n"
-        md_output += f"- **Comparator**: {result['comparator']}\n"
-        md_output += f"- **Outcome**: {result['outcome']}\n"
-        md_output += f"- **Risk of Bias**: {result['risk_of_bias']}\n\n"
-        md_output += f"## Full Text Markdown\n\n{markdown_text[:1000]}...\n"  # Truncated for display
+            # Format the markdown output for the user
+            md_output = f"# {article.get('title')}\n\n**DOI**: {doi}\n\n"
+            md_output += "## Extraction Results\n"
+            md_output += f"- **Population**: {result['population']}\n"
+            md_output += f"- **Intervention**: {result['intervention']}\n"
+            md_output += f"- **Comparator**: {result['comparator']}\n"
+            md_output += f"- **Outcome**: {result['outcome']}\n"
+            md_output += f"- **Risk of Bias**: {result['risk_of_bias']}\n\n"
+            md_output += f"## Full Text Markdown\n\n{markdown_text[:1000]}...\n"
 
-        markdown_outputs.append(md_output)
+            markdown_outputs.append(md_output)
+            
+        except Exception as e:
+            logger.error(f"[READ_NODE] Error processing article {aid}: {e}")
 
     eligibility_state.pdfs_extracted = pdfs_extracted
     eligibility_state.pico_data = pico_data
     eligibility_state.extraction_confidence = (
-        total_confidence / len(included_ids) if included_ids else 0.0
+        total_confidence / len(pico_data) if pico_data else 0.0
     )
     eligibility_state.markdown_outputs = markdown_outputs
 
