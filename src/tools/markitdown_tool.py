@@ -23,7 +23,7 @@ class MarkItDownTool:
 
     def _get_pdf_url_from_unpaywall(self, doi: str) -> str | None:
         """Use Unpaywall API to find an Open Access PDF URL for a DOI."""
-        if not doi:
+        if not doi or ".mock" in doi:
             return None
             
         try:

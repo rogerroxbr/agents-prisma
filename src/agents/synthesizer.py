@@ -162,8 +162,12 @@ Output your results strictly following the requested schema.
             outcome = format_cell(pico.get("outcome", []))
 
             rob_str = []
-            for k, v in rob.items():
-                rob_str.append(f"{k}: {v}")
+            if isinstance(rob, dict):
+                for k, v in rob.items():
+                    rob_str.append(f"{k}: {v}")
+            elif isinstance(rob, str):
+                rob_str.append(f"Erro/Texto: {rob}")
+            
             risk_of_bias = ", ".join(rob_str) if rob_str else "-"
 
             # Clean up newlines for the table row

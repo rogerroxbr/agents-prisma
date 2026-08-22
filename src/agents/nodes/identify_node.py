@@ -5,13 +5,13 @@ from typing import Any
 
 from src.agents.state import IdentificationState, PRISMAState
 from src.agents.subgraphs.pubmed_subgraph import PubMedSubgraph
-from src.agents.subgraphs.scopus_subgraph import ScopusSubgraph
-from src.agents.subgraphs.scholar_subgraph import ScholarSubgraph
-from src.agents.subgraphs.wos_subgraph import WosSubgraph
+from src.agents.subgraphs.openalex_subgraph import OpenAlexSubgraph
+from src.agents.subgraphs.semantic_scholar_subgraph import SemanticScholarSubgraph
+from src.agents.subgraphs.arxiv_subgraph import ArxivSubgraph
 
 
 async def _parallel_search(state: PRISMAState) -> dict[str, list[dict[str, Any]]]:
-    """Execute PubMed and Scopus subgraphs in parallel."""
+    """Execute search subgraphs in parallel."""
 
     query = state.get("query", "")
     max_results = state.get("max_results", 100)
@@ -19,24 +19,24 @@ async def _parallel_search(state: PRISMAState) -> dict[str, list[dict[str, Any]]
     subgraph_state = {"query": query, "max_results": max_results}
 
     pubmed_app = PubMedSubgraph().compile()
-    scopus_app = ScopusSubgraph().compile()
-    scholar_app = ScholarSubgraph().compile()
-    wos_app = WosSubgraph().compile()
+    openalex_app = OpenAlexSubgraph().compile()
+    semantic_scholar_app = SemanticScholarSubgraph().compile()
+    arxiv_app = ArxivSubgraph().compile()
 
     print(f"[IDENTIFY_NODE] Invoking parallel subgraphs for '{query}'...")
 
-    pubmed_res, scopus_res, scholar_res, wos_res = await asyncio.gather(
+    pubmed_res, openalex_res, semantic_scholar_res, arxiv_res = await asyncio.gather(
         pubmed_app.ainvoke(subgraph_state), 
-        scopus_app.ainvoke(subgraph_state),
-        scholar_app.ainvoke(subgraph_state),
-        wos_app.ainvoke(subgraph_state)
+        openalex_app.ainvoke(subgraph_state),
+        semantic_scholar_app.ainvoke(subgraph_state),
+        arxiv_app.ainvoke(subgraph_state)
     )
 
     return {
         "pubmed": pubmed_res.get("metadata_results", []),
-        "scopus": scopus_res.get("metadata_results", []),
-        "scholar": scholar_res.get("metadata_results", []),
-        "wos": wos_res.get("metadata_results", []),
+        "openalex": openalex_res.get("metadata_results", []),
+        "semantic_scholar": semantic_scholar_res.get("metadata_results", []),
+        "arxiv": arxiv_res.get("metadata_results", []),
     }
 
 
