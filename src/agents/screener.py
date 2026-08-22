@@ -56,7 +56,7 @@ class ScreeningAgent:
         # We bind the LLM to return our structured schema
         self.structured_llm = self.llm.with_structured_output(ScreeningDecision)
 
-    def load_criteria(self, criteria_file: str = ".planning/prisma_criteria.json"):
+    def load_criteria(self, criteria_file: str = "prisma_criteria.json"):
         """Load PRISMA criteria from JSON file."""
         try:
             with open(criteria_file, "r") as f:
