@@ -10,11 +10,12 @@ Este documento define a estrutura de fases para o desenvolvimento do sistema mul
 
 | Fase | Nome | Duração Estimada | Depende De | Status | Artifacts Principais |
 |------|------|------------------|------------|--------|---------------------|
-| 1 | **Fundação + Core** | ~5 dias | Projeto inicializado | ✅ CONCLUÍDA (45min vs 8h est.) | `orchestrator.py`, `pubmed_tool.py`, `scopus_tool.py`, 19 testes passando |
-| 1.5 | **LangGraph Migration** | ~3 dias | Fase 1 aprovada | 🆕 Pendente (/gsd:plan-phase 1.5) | PLAN.md (28 tasks), state schema, MainStateGraph |
-| 2 | **Triagem + Leitura Profunda** | ~7 dias | Fase 1.5 aprovada | 🟡 Em andamento (Issue #003) | `screener.py`, MCP MarkItDown, deep_reader |
-| 3 | **Síntese + Fluxograma** | ~4 dias | Fase 2 aprovada | ⏳ Pendente | Synthesizer, PRISMA flowchart generator |
-| 4 | **Hardening + Extensões** | ~6 dias | Fase 3 aprovada | ⏳ Pendente | UI/API design, integration tests, docs |
+| 1 | **Fundação + Core** | ~5 dias | Projeto inicializado | ✅ CONCLUÍDA | `orchestrator.py`, `pubmed_tool.py`, `scopus_tool.py` |
+| 1.5 | **LangGraph Migration** | ~3 dias | Fase 1 aprovada | ✅ CONCLUÍDA | PLAN.md (28 tasks), state schema, MainStateGraph |
+| 2 | **Triagem + Leitura Profunda** | ~7 dias | Fase 1.5 aprovada | ✅ CONCLUÍDA | `screener.py`, MCP MarkItDown, deep_reader |
+| 3 | **Síntese + Fluxograma** | ~4 dias | Fase 2 aprovada | ✅ CONCLUÍDA | Synthesizer, PRISMA flowchart generator |
+| 4 | **Hardening + Extensões** | ~6 dias | Fase 3 aprovada | ✅ CONCLUÍDA | UI/API design, integration tests, docs |
+| 5 | **Expansão & Deploy** | ~3 dias | Fase 4 aprovada | 🟡 Em andamento | Docker orchestration, Scholar MCP, WoS API |
 
 ---
 
@@ -237,19 +238,35 @@ Configurar ambiente CrewAI + PostgreSQL e implementar o Agente Orquestrador com 
 
 ---
 
-### 🎯 Fase 1.5: LangGraph Migration (Novo!) (~3 dias est.)
+### 🎯 Fase 1.5: LangGraph Migration (~3 dias est.) - PLAN.md COMPLETA ✅
 
 #### Checklist de Execução (Phase 1.5)
-- [ ] **TypedDict State Schema** (`src/agents/state.py`) - Nested by phase (identification/screening/read/synthesis)
-- [ ] **MainStateGraph Implementation** (`src/agents/orchestrator_langgraph.py`) - Identify/Screen/Read/Synthesize nodes (pure functions)
-- [ ] **PubMed/Scopus Subgraphs** (`src/agents/subgraphs/*.py`) - Parallel execution com Diamond Pattern
-- [ ] **Async PostgreSQL + Auto-checkpointing** (`src/db/langgraph_checkpoint.py`) - Per-phase persistence
+- [x] **TypedDict State Schema** (`src/agents/state.py`) - Nested by phase (identification/screening/read/synthesis)
+- [x] **MainStateGraph Implementation** (`src/agents/orchestrator_langgraph.py`) - Identify/Screen/Read/Synthesize nodes (pure functions)
+- [x] **PubMed/Scopus Subgraphs** (`src/agents/subgraphs/*.py`) - Parallel execution com Diamond Pattern
+- [x] **Async PostgreSQL + Auto-checkpointing** (`src/db/langgraph_checkpoint.py`) - Per-phase persistence
 
-#### Entregáveis:
-- ⏳ `src/agents/state.py` - TypedDict state schema (nested by phase)
-- ⏳ `src/agents/orchestrator_langgraph.py` - Main StateGraph implementation
-- ⏳ `src/agents/subgraphs/pubmed_subgraph.py`, `scopus_subgraph.py` - Parallel source graphs
-- ⏳ `src/db/langgraph_checkpoint.py` - LangGraph checkpoint table + ops
+---
+
+### 🎯 Fase 2, 3 e 4: Triagem, Leitura, Síntese e Hardening ✅
+
+- [x] **Triagem LLM + Keywords** implementada
+- [x] **Agente Leitor Profundo** (MarkItDown/PDF extraction) implementado
+- [x] **Agente de Síntese e Fluxograma** concluídos
+- [x] **CLI Typer + API FastAPI** com BackgroundTasks completas e testadas (E2E)
+
+---
+
+### 🎯 Fase 5: Expansão & Deploy (Em andamento) 🟡
+
+#### Objetivos
+Preparar o sistema para ambientes de produção (Docker) e aumentar o alcance integrando o Google Scholar (via MCP) e Web of Science.
+
+#### Checklist de Execução
+- [ ] Criar `Dockerfile` e atualizar `docker-compose.yml` (expondo na porta 8080)
+- [ ] Desenvolver `google_scholar_mcp_tool.py` e `web_of_science_tool.py`
+- [ ] Criar `scholar_subgraph.py` e `wos_subgraph.py`
+- [ ] Atualizar o nó de Identificação (`identify_node.py`) para consumir as 4 fontes simultaneamente.
 
 ---
 

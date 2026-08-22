@@ -6,6 +6,8 @@ from typing import Any
 from src.agents.state import IdentificationState, PRISMAState
 from src.agents.subgraphs.pubmed_subgraph import PubMedSubgraph
 from src.agents.subgraphs.scopus_subgraph import ScopusSubgraph
+from src.agents.subgraphs.scholar_subgraph import ScholarSubgraph
+from src.agents.subgraphs.wos_subgraph import WosSubgraph
 
 
 async def _parallel_search(state: PRISMAState) -> dict[str, list[dict[str, Any]]]:
@@ -18,16 +20,23 @@ async def _parallel_search(state: PRISMAState) -> dict[str, list[dict[str, Any]]
 
     pubmed_app = PubMedSubgraph().compile()
     scopus_app = ScopusSubgraph().compile()
+    scholar_app = ScholarSubgraph().compile()
+    wos_app = WosSubgraph().compile()
 
     print(f"[IDENTIFY_NODE] Invoking parallel subgraphs for '{query}'...")
 
-    pubmed_res, scopus_res = await asyncio.gather(
-        pubmed_app.ainvoke(subgraph_state), scopus_app.ainvoke(subgraph_state)
+    pubmed_res, scopus_res, scholar_res, wos_res = await asyncio.gather(
+        pubmed_app.ainvoke(subgraph_state), 
+        scopus_app.ainvoke(subgraph_state),
+        scholar_app.ainvoke(subgraph_state),
+        wos_app.ainvoke(subgraph_state)
     )
 
     return {
         "pubmed": pubmed_res.get("metadata_results", []),
         "scopus": scopus_res.get("metadata_results", []),
+        "scholar": scholar_res.get("metadata_results", []),
+        "wos": wos_res.get("metadata_results", []),
     }
 
 
