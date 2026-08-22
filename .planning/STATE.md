@@ -1,4 +1,4 @@
-﻿# 🧠 State - Agents-Prisma: Memory & Context
+# 🧠 State - Agents-Prisma: Memory & Context
 
 ## Visão Geral
 
@@ -222,18 +222,21 @@ Este arquivo serve como **memory central** para o projeto, capturando decisões 
 
 | Fase | Sub-fase | Status | Progresso (%) | Bloqueios |
 |------|----------|--------|---------------|-----------|
-| **1. Fundação + Core** | 1.1 Configuração Ambiente | ✅ COMPLETA (45min vs 8h est.) | 100% | - |
-| | 1.2 Agente Orquestrador | ✅ COMPLETA (~16h est.) | 100% | - |
-| | 1.3 Agente Busca + APIs | ✅ COMPLETA (PubMed + Scopus MVP) | 100% | - |
-| | **1.4 Screening Agent** | ✅ COMPLETA (~2h est., Issue #002) | 100% | - |
-| | **1.5 LangGraph Migration** | 🆕 Pendente (PLAN.md criado) | 0% | Aguardando Task A-01 |
-| **2. Triagem + Leitura** | 2.1 Agente Triagem | ✅ COMPLETA (Issue #002) | 100% | - |
-| | 2.2 MCP MarkItDown Integration | ⏳ Pendente | 0% | Aguardando Fase 2.3 |
-| | 2.3 Agente Leitor Profundo | ⏳ Pendente (Issue #002) | 0% | - |
-| **3. Síntese + Fluxograma** | 3.1 Agente Síntese Markdown | ⏳ Pendente | 0% | Aguardando Fase 2 |
-| | 3.2 Agente Fluxograma PRISMA | 🆕 Adicionado | 0% | - |
-| **4. Hardening + Extensões** | 4.1 Testes Automatizados | ⏳ Pendente | 0% | Aguardando Fase 3 |
-| | 4.2 UI/API Design | ⏳ Pendente | 0% | Aguardando Fase 3 |
+| **1. Fundação + Core** | 1.1 Configuração Ambiente | ✅ COMPLETA | 100% | - |
+| | 1.2 Agente Orquestrador | ✅ COMPLETA | 100% | - |
+| | 1.3 Agente Busca + APIs | ✅ COMPLETA | 100% | - |
+| | **1.4 Screening Agent** | ✅ COMPLETA | 100% | - |
+| | **1.5 LangGraph Migration** | ✅ COMPLETA | 100% | - |
+| **2. Triagem + Leitura** | 2.1 Agente Triagem | ✅ COMPLETA | 100% | - |
+| | 2.2 MCP MarkItDown Integration | ✅ COMPLETA | 100% | - |
+| | 2.3 Agente Leitor Profundo | ✅ COMPLETA | 100% | - |
+| **3. Síntese + Fluxograma** | 3.1 Agente Síntese Markdown | ✅ COMPLETA | 100% | - |
+| | 3.2 Agente Fluxograma PRISMA | ✅ COMPLETA | 100% | - |
+| **4. Hardening + Extensões** | 4.1 Testes Automatizados | ✅ COMPLETA | 100% | - |
+| | 4.2 UI/API Design | ✅ COMPLETA | 100% | - |
+| **5. Expansão & Deploy** | 5.1 Dockerização (API + DB) | 🟡 Em andamento | 0% | - |
+| | 5.2 Google Scholar MCP Tool | ⏳ Pendente | 0% | - |
+| | 5.3 Web of Science Tool | ⏳ Pendente | 0% | - |
 
 ---
 
